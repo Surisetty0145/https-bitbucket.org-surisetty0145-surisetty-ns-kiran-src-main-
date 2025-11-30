@@ -1,0 +1,142 @@
+------------------------------------------------------------
+ HIVE MANAGED vs EXTERNAL TABLE PRACTICE GUIDE
+------------------------------------------------------------
+
+ DATABASE: bronze
+
+------------------------------------------------------------
+1️⃣ INTERNAL TABLE (NO EXPLICIT LOCATION)
+------------------------------------------------------------
+
+-- Create table
+CREATE TABLE bronze.accounts_int_default (
+  accounts_type    STRING,
+  accounts_name    STRING,
+  address          STRING,
+  customer_name    STRING,
+  account_status   STRING
+)
+STORED AS PARQUET;
+
+-- Insert sample data
+INSERT INTO TABLE bronze.accounts_int_default VALUES
+('Savings', 'CASA-001', 'Kuala Lumpur', 'Kiran Babu', 'Active'),
+('Current', 'CASA-002', 'Penang', 'Ravi Kumar', 'Inactive');
+
+-- Verify
+SELECT * FROM bronze.accounts_int_default;
+
+-- Check HDFS location
+!hdfs dfs -ls /user/hive/warehouse/bronze.db/accounts_int_default/;
+
+ DROP TABLE removes both metadata and data.
+
+------------------------------------------------------------
+2️⃣ INTERNAL TABLE (WITH EXPLICIT LOCATION)
+------------------------------------------------------------
+
+CREATE TABLE bronze.accounts_int_loc (
+  accounts_type    STRING,
+  accounts_name    STRING,
+  address          STRING,
+  customer_name    STRING,
+  account_status   STRING
+)
+STORED AS PARQUET
+LOCATION '/data/bronze/hive_managed/accounts_int_loc/';
+
+INSERT INTO TABLE bronze.accounts_int_loc VALUES
+('Salary', 'CASA-003', 'Selangor', 'Anu Priya', 'Active'),
+('Fixed', 'CASA-004', 'Ipoh', 'Latha Devi', 'Inactive');
+
+SELECT * FROM bronze.accounts_int_loc;
+
+!hdfs dfs -ls /data/bronze/hive_managed/accounts_int_loc/;
+
+ DROP TABLE deletes data even in custom location.
+
+------------------------------------------------------------
+3️⃣ EXTERNAL TABLE (WITH EXPLICIT LOCATION)
+------------------------------------------------------------
+
+CREATE EXTERNAL TABLE bronze.accounts_ext (
+  accounts_type    STRING,
+  accounts_name    STRING,
+  address          STRING,
+  customer_name    STRING,
+  account_status   STRING
+)
+STORED AS PARQUET
+LOCATION '/data/bronze/process/casa/accounts/';
+
+INSERT INTO TABLE bronze.accounts_ext VALUES
+('Savings', 'CASA-005', 'Melaka', 'Renu Das', 'Active'),
+('Joint', 'CASA-006', 'Putrajaya', 'Deepa Ramesh', 'Inactive');
+
+SELECT * FROM bronze.accounts_ext;
+
+!hdfs dfs -ls /data/bronze/process/casa/accounts/;
+
+ DROP TABLE removes metadata only — data remains in HDFS.
+
+------------------------------------------------------------
+4️⃣ REPEAT WITH DIFFERENT FORMATS
+------------------------------------------------------------
+
+-- TEXTFILE format
+CREATE TABLE bronze.accounts_text (
+  accounts_type STRING,
+  accounts_name STRING,
+  address STRING,
+  customer_name STRING,
+  account_status STRING
+)
+STORED AS TEXTFILE;
+
+INSERT INTO TABLE bronze.accounts_text VALUES
+('Salary', 'CASA-007', 'Cyberjaya', 'Arun Kumar', 'Active');
+
+-- ORC format
+CREATE TABLE bronze.accounts_orc (
+  accounts_type STRING,
+  accounts_name STRING,
+  address STRING,
+  customer_name STRING,
+  account_status STRING
+)
+STORED AS ORC;
+
+-- AVRO format (if supported)
+CREATE TABLE bronze.accounts_avro (
+  accounts_type STRING,
+  accounts_name STRING,
+  address STRING,
+  customer_name STRING,
+  account_status STRING
+)
+STORED AS AVRO;
+
+------------------------------------------------------------
+ VERIFICATION COMMANDS
+------------------------------------------------------------
+
+SHOW TABLES IN bronze;
+DESCRIBE bronze.accounts_ext;
+DESCRIBE FORMATTED bronze.accounts_ext;
+SELECT * FROM bronze.accounts_ext;
+!hdfs dfs -ls /data/bronze/process/casa/accounts/;
+!hdfs dfs -cat /path/to/file;
+
+------------------------------------------------------------
+ SUMMARY: MANAGED vs EXTERNAL
+------------------------------------------------------------
+
+| Type | Location | Managed by Hive | Data deleted on DROP | Example Path |
+|------|-----------|----------------|----------------------|---------------|
+| Internal (default) | Auto (warehouse) | Hive | Yes | /user/hive/warehouse/bronze.db/... |
+| Internal (custom) | Explicit | Hive |  Yes | /data/bronze/hive_managed/... |
+| External | Explicit | You |  No | /data/bronze/process/casa/accounts/ |
+
+------------------------------------------------------------
+ END OF PRACTICE GUIDE
+------------------------------------------------------------
